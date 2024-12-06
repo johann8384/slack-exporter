@@ -48,4 +48,4 @@ docker build -t slack-exporter .
 
 Run:
 ```bash
-docker run -e SLACK_TOKEN='xoxb-your-token' slack-exporter --format pdf
+docker run -v "$(pwd):/app" -e SLACK_TOKEN='xoxb-your-token' slack-exporter --format pdf
