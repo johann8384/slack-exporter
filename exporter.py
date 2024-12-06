@@ -13,24 +13,59 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 
-
 class SlackExporter:
+    """
+    Utility class to export messages from a Slack channel.
+
+    Attributes:
+        token (str): The Slack API token used for authentication.
+        headers (dict): The HTTP headers used for Slack API requests.
+        users_cache (dict): A cache to store user information.
+    """
+
     def __init__(self, token: str):
+        """
+        Initializes the SlackExporter with the provided Slack API token.
+
+        Args:
+            token (str): The Slack API token.
+        """
         self.token = token
         self.headers = {"Authorization": f"Bearer {token}"}
         self.users_cache = {}
 
     def get_channel_id(self, channel_name: str) -> str:
+        """
+        Retrieves the channel ID for the given channel name.
+
+        Args:
+            channel_name (str): The name of the Slack channel.
+
+        Returns:
+            str: The channel ID.
+        """
         response = requests.get(
             "https://slack.com/api/conversations.list",
             headers=self.headers,
             params={"types": "public_channel,private_channel"}
         )
         channels = response.json()["channels"]
-        channel = next(c for c in channels if c["name"] == channel_name)
-        return channel["id"]
+        channel = next((c for c in channels if c["name"] == channel_name), None)
+        if channel:
+            return channel["id"]
+        else:
+            return ""
 
     def fetch_user_info(self, user_id: str) -> Dict:
+        """
+        Retrieves user information for the given user ID.
+
+        Args:
+            user_id (str): The Slack user ID.
+
+        Returns:
+            dict: The user information, including the user's name, real name, and profile image (if available).
+        """
         if user_id in self.users_cache:
             return self.users_cache[user_id]
 
@@ -61,12 +96,30 @@ class SlackExporter:
         return user_info
 
     def download_image(self, url: str) -> str:
+        """
+        Downloads an image from the given URL and returns it as a base64-encoded string.
+
+        Args:
+            url (str): The URL of the image to be downloaded.
+
+        Returns:
+            str: The base64-encoded image data.
+        """
         response = requests.get(url, headers=self.headers)
         if response.status_code == 200:
             return base64.b64encode(response.content).decode('utf-8')
         return ""
 
     def process_message(self, message: Dict) -> Dict:
+        """
+        Processes a Slack message and returns a dictionary with the relevant information.
+
+        Args:
+            message (dict): The Slack message data.
+
+        Returns:
+            dict: The processed message data, including the user information, message text, timestamp, and any attached images.
+        """
         user_info = self.fetch_user_info(message.get("user", ""))
         processed = {
             "user": user_info,
@@ -90,6 +143,16 @@ class SlackExporter:
         return processed
 
     def fetch_thread_replies(self, channel_id: str, thread_ts: str) -> List[Dict]:
+        """
+        Fetches the replies for a Slack message thread.
+
+        Args:
+            channel_id (str): The ID of the Slack channel.
+            thread_ts (str): The timestamp of the parent message in the thread.
+
+        Returns:
+            list: A list of dictionaries, where each dictionary represents a reply message.
+        """
         replies = []
         cursor = None
 
@@ -125,7 +188,18 @@ class SlackExporter:
         return replies
 
     def export_channel(self, channel_name: str) -> List[Dict]:
+        """
+        Exports the messages from the specified Slack channel.
+
+        Args:
+            channel_name (str): The name of the Slack channel.
+
+        Returns:
+            list: A list of dictionaries, where each dictionary represents a message.
+        """
         channel_id = self.get_channel_id(channel_name)
+        if not channel_id:
+            return []
 
         requests.post(
             "https://slack.com/api/conversations.join",
@@ -180,12 +254,29 @@ class SlackExporter:
 
 
 class SlackPDFExporter:
+    """
+    Utility class to export Slack messages to a PDF document.
+
+    Attributes:
+        exporter (SlackExporter): An instance of the SlackExporter class.
+        styles (dict): The styles used for the PDF document.
+    """
+
     def __init__(self, token: str):
+        """
+        Initializes the SlackPDFExporter with the provided Slack API token.
+
+        Args:
+            token (str): The Slack API token.
+        """
         self.exporter = SlackExporter(token)
         self.styles = getSampleStyleSheet()
         self.setup_styles()
 
     def setup_styles(self):
+        """
+        Sets up the styles used for the PDF document.
+        """
         self.styles.add(ParagraphStyle(
             name='ThreadMessage',
             parent=self.styles['Normal'],
@@ -195,6 +286,16 @@ class SlackPDFExporter:
         ))
 
     def create_message_table(self, message, is_thread=False):
+        """
+        Creates a table representation of a Slack message.
+
+        Args:
+            message (dict): The processed Slack message data.
+            is_thread (bool, optional): Indicates whether the message is a reply in a thread.
+
+        Returns:
+            Table: A ReportLab Table object representing the Slack message.
+        """
         avatar_data = None
         if message['user']['image']:
             img_data = base64.b64decode(message['user']['image'])
@@ -238,6 +339,13 @@ class SlackPDFExporter:
         return table
 
     def export_to_pdf(self, channel_name: str, output_file: str):
+        """
+        Exports the messages from the specified Slack channel to a PDF document.
+
+        Args:
+            channel_name (str): The name of the Slack channel.
+            output_file (str): The path to the output PDF file.
+        """
         messages = self.exporter.export_channel(channel_name)
 
         doc = SimpleDocTemplate(
@@ -264,6 +372,9 @@ class SlackPDFExporter:
 
 
 def main():
+    """
+    The main function that handles the command-line interface.
+    """
     parser = argparse.ArgumentParser(description='Export Slack channel messages')
     parser.add_argument('--format', choices=['json', 'pdf'], default='json', help='Output format')
     args = parser.parse_args()
