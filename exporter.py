@@ -1,16 +1,18 @@
-import os
-import json
-import base64
-import requests
 import argparse
+import base64
+import json
+import os
 from datetime import datetime
+from io import BytesIO
 from typing import Dict, List
+
+import requests
+from PIL import Image as PILImage
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 from reportlab.lib.units import inch
-from io import BytesIO
-from PIL import Image as PILImage
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+
 
 class SlackExporter:
     def __init__(self, token: str):
@@ -176,6 +178,7 @@ class SlackExporter:
 
         return all_messages
 
+
 class SlackPDFExporter:
     def __init__(self, token: str):
         self.exporter = SlackExporter(token)
@@ -225,7 +228,7 @@ class SlackPDFExporter:
                     img_obj = Image(BytesIO(img_data), width=width, height=height)
                     content.append(['', img_obj])
 
-        table = Table(content, colWidths=[0.4*inch, 6*inch])
+        table = Table(content, colWidths=[0.4 * inch, 6 * inch])
         table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('TOPPADDING', (0, 0), (-1, -1), 2),
@@ -257,8 +260,8 @@ class SlackPDFExporter:
                 for reply in message['replies']:
                     story.append(self.create_message_table(reply, is_thread=True))
             story.append(Spacer(1, 12))
-        print("calling build")
         doc.build(story)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Export Slack channel messages')
@@ -284,6 +287,7 @@ def main():
     else:
         exporter = SlackPDFExporter(token)
         exporter.export_to_pdf(channel_name, "slack_export.pdf")
+
 
 if __name__ == "__main__":
     main()

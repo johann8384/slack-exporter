@@ -1,6 +1,7 @@
+import base64
 import unittest
 from unittest.mock import patch, Mock
-import base64
+
 from exporter import SlackExporter, SlackPDFExporter
 
 
