@@ -2,6 +2,13 @@
 
 Exports Slack channel messages, including threads and images, to JSON or PDF format.
 
+![Dependency Status](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen)
+
+![Code Scanning](https://github.com/johann8384/slack-exporter/actions/workflows/codeql.yml/badge.svg)
+
+![Test Status](https://github.com/johann8384/slack-exporter/actions/workflows/tests.yml/badge.svg)
+
+
 ## Features
 - Exports messages in chronological order
 - Includes user avatars and names
