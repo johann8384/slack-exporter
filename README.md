@@ -1,13 +1,8 @@
 # Slack Channel Exporter
 
-Exports Slack channel messages, including threads and images, to JSON or PDF format.
+![Dependency Status](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen) ![Code Scanning](https://github.com/johann8384/slack-exporter/actions/workflows/codeql.yml/badge.svg) ![Test Status](https://github.com/johann8384/slack-exporter/actions/workflows/tests.yml/badge.svg)
 
-![Dependency Status](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen)
-
-![Code Scanning](https://github.com/johann8384/slack-exporter/actions/workflows/codeql.yml/badge.svg)
-
-![Test Status](https://github.com/johann8384/slack-exporter/actions/workflows/tests.yml/badge.svg)
-
+This project allows you to export Slack channel messages, including threads and images, to JSON or PDF format.
 
 ## Features
 - Exports messages in chronological order
@@ -15,6 +10,11 @@ Exports Slack channel messages, including threads and images, to JSON or PDF for
 - Preserves threaded conversations
 - Embeds images as base64 data
 - Supports JSON and PDF output formats
+
+## Status
+- **Dependency Status**: This badge indicates that the project's dependencies are up to date.
+- **Code Scanning**: This badge shows the status of the project's code scanning workflow using GitHub's CodeQL analysis.
+- **Test Status**: This badge displays the status of the project's test workflow.
 
 ## Requirements
 - Python 3.11+
@@ -56,3 +56,4 @@ docker build -t slack-exporter .
 Run:
 ```bash
 docker run -v "$(pwd):/app" -e SLACK_TOKEN='xoxb-your-token' slack-exporter --format pdf
+```
