@@ -2,205 +2,252 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Slack Export Viewer</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" 
-rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css"
+          rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
     <style>
-        .message { border-left: 4px solid #e9ecef; margin-bottom: 1rem; padding: 0.5rem 0 0.5rem 1rem; }
-        .thread-message { margin-left: 2rem; border-left: 4px solid #dee2e6; }
-        .message-header { margin-bottom: 0.5rem; }
-        .user-name { font-weight: 600; color: #1a1d20; }
-        .timestamp { color: #6c757d; font-size: 0.875rem; margin-left: 0.5rem; }
-        .message-text { white-space: pre-wrap; margin-bottom: 0.5rem; }
-        .files-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 
-1rem; margin-top: 0.5rem; }
-        .file-image { max-width: 100%; border-radius: 0.375rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .upload-container { background: #f8f9fa; border-radius: 0.375rem; padding: 2rem; margin-bottom: 
-1.5rem; text-align: center; }
-        .channel-info { display: none; background: #f8f9fa; border-radius: 0.375rem; padding: 1rem; 
-margin-bottom: 1.5rem; }
+        .message {
+            border-left: 4px solid #e9ecef;
+            margin-bottom: 1rem;
+            padding: 0.5rem 0 0.5rem 1rem;
+        }
+
+        .thread-message {
+            margin-left: 2rem;
+            border-left: 4px solid #dee2e6;
+        }
+
+        .message-header {
+            margin-bottom: 0.5rem;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #1a1d20;
+        }
+
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.875rem;
+            margin-left: 0.5rem;
+        }
+
+        .message-text {
+            white-space: pre-wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        .files-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .file-image {
+            max-width: 100%;
+            border-radius: 0.375rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-container {
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .channel-info {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
     </style>
 </head>
 <body>
-    <div class="container py-4">
-        <div class="upload-container" id="upload-section">
-            <h1 class="h4 mb-3">Slack Export Viewer</h1>
-            <input type="file" class="form-control" id="fileInput" accept=".json">
-            <small class="text-muted mt-2 d-block">Select your slack_export.json file</small>
-        </div>
-        <div class="channel-info" id="channel-info">
-            <h1 class="h4 mb-2" id="channel-name"></h1>
-            <div class="text-muted" id="export-info"></div>
-        </div>
-        <div id="messages"></div>
+<div class="container py-4">
+    <div class="upload-container" id="upload-section">
+        <h1 class="h4 mb-3">Slack Export Viewer</h1>
+        <input accept=".json" class="form-control" id="fileInput" type="file">
+        <small class="text-muted mt-2 d-block">Select your slack_export.json file</small>
     </div>
+    <div class="channel-info" id="channel-info">
+        <h1 class="h4 mb-2" id="channel-name"></h1>
+        <div class="text-muted" id="export-info"></div>
+    </div>
+    <div id="messages"></div>
+</div>
 
-    <script>
-        class SlackViewer {
-            constructor() {
-                this.messagesContainer = document.getElementById('messages');
-                this.fileInput = document.getElementById('fileInput');
-                this.setupFileInput();
-            }
+<script>
+    class SlackViewer {
+        constructor() {
+            this.messagesContainer = document.getElementById('messages');
+            this.fileInput = document.getElementById('fileInput');
+            this.setupFileInput();
+        }
 
-            setupFileInput() {
-                this.fileInput.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        this.loadData(file);
-                    }
-                });
-            }
-
-            async loadData(file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        document.getElementById('upload-section').style.display = 'none';
-                        document.getElementById('channel-info').style.display = 'block';
-                        this.updateHeader(data);
-                        this.renderMessages(data.messages);
-                    } catch (error) {
-                        this.showError('Invalid JSON file format');
-                    }
-                };
-                reader.onerror = () => this.showError('Failed to read file');
-                reader.readAsText(file);
-            }
-
-            updateHeader(data) {
-                document.getElementById('channel-name').textContent = `#${data.channel}`;
-                document.getElementById('export-info').textContent = 
-                    `Exported: ${moment(data.exported_at).format('MMMM D, YYYY h:mm A')}`;
-            }
-
-            renderMessages(messages) {
-                this.messagesContainer.innerHTML = '';
-                const messageGroups = this.groupMessagesByThread(messages);
-                messageGroups.forEach(group => {
-                    const messageElement = this.createMessageElement(group.parent, false);
-                    this.messagesContainer.appendChild(messageElement);
-
-                    if (group.parent.replies && group.parent.replies.length > 0) {
-                        const threadContainer = document.createElement('div');
-                        threadContainer.className = 'thread-container ml-4';
-                        
-                        group.parent.replies.forEach(reply => {
-                            const replyElement = this.createMessageElement(reply, true);
-                            threadContainer.appendChild(replyElement);
-                        });
-                        
-                        this.messagesContainer.appendChild(threadContainer);
-                    }
-                });
-            }
-
-            groupMessagesByThread(messages) {
-                const groups = [];
-                const messageMap = new Map();
-                
-                messages.sort((a, b) => parseFloat(a.timestamp) - parseFloat(b.timestamp))
-                    .forEach(message => {
-                        if (!message.thread_ts || message.thread_ts === message.timestamp) {
-                            const group = { parent: message, replies: [] };
-                            groups.push(group);
-                            messageMap.set(message.timestamp, group);
-                        } else {
-                            const parentGroup = messageMap.get(message.thread_ts);
-                            if (parentGroup) {
-                                parentGroup.replies.push(message);
-                            }
-                        }
-                    });
-                
-                return groups;
-            }
-
-            createMessageElement(message, isReply = false) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${isReply ? 'thread-message' : ''}`;
-                
-                const header = this.createMessageHeader(message);
-                const content = this.createMessageContent(message);
-                const files = this.createFilesContainer(message.files);
-                
-                messageDiv.appendChild(header);
-                messageDiv.appendChild(content);
-                if (files) messageDiv.appendChild(files);
-                
-                return messageDiv;
-            }
-
-            createMessageHeader(message) {
-                const header = document.createElement('div');
-                header.className = 'message-header d-flex align-items-center';
-                
-                const userContainer = document.createElement('div');
-                userContainer.className = 'd-flex align-items-center gap-2';
-
-                if (message.user.image) {
-                    const avatar = document.createElement('img');
-                    avatar.src = `data:image/jpeg;base64,${message.user.image}`;
-                    avatar.className = 'rounded-circle';
-                    avatar.style.width = '24px';
-                    avatar.style.height = '24px';
-                    userContainer.appendChild(avatar);
+        setupFileInput() {
+            this.fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    this.loadData(file);
                 }
+            });
+        }
 
-                const user = document.createElement('span');
-                user.className = 'user-name';
-                user.textContent = message.user.name;
-                userContainer.appendChild(user);
-                
-                const timestamp = document.createElement('span');
-                timestamp.className = 'timestamp';
-                timestamp.textContent = moment(parseFloat(message.timestamp) * 1000)
-                    .format('MMM D, YYYY h:mm A');
-                
-                header.appendChild(userContainer);
-                header.appendChild(timestamp);
-                return header;
-            }
+        async loadData(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    document.getElementById('upload-section').style.display = 'none';
+                    document.getElementById('channel-info').style.display = 'block';
+                    this.updateHeader(data);
+                    this.renderMessages(data.messages);
+                } catch (error) {
+                    this.showError('Invalid JSON file format');
+                }
+            };
+            reader.onerror = () => this.showError('Failed to read file');
+            reader.readAsText(file);
+        }
 
-            createMessageContent(message) {
-                const content = document.createElement('div');
-                content.className = 'message-text';
-                content.textContent = message.text;
-                return content;
-            }
+        updateHeader(data) {
+            document.getElementById('channel-name').textContent = `#${data.channel}`;
+            document.getElementById('export-info').textContent =
+                `Exported: ${moment(data.exported_at).format('MMMM D, YYYY h:mm A')}`;
+        }
 
-            createFilesContainer(files) {
-                if (!files || files.length === 0) return null;
-                
-                const container = document.createElement('div');
-                container.className = 'files-container';
-                
-                files.forEach(file => {
-                    const img = document.createElement('img');
-                    img.className = 'file-image';
-                    img.src = `data:${file.mimetype};base64,${file.data}`;
-                    img.alt = file.name;
-                    container.appendChild(img);
+        renderMessages(messages) {
+            this.messagesContainer.innerHTML = '';
+            const messageGroups = this.groupMessagesByThread(messages);
+            messageGroups.forEach(group => {
+                const messageElement = this.createMessageElement(group.parent, false);
+                this.messagesContainer.appendChild(messageElement);
+
+                if (group.parent.replies && group.parent.replies.length > 0) {
+                    const threadContainer = document.createElement('div');
+                    threadContainer.className = 'thread-container ml-4';
+
+                    group.parent.replies.forEach(reply => {
+                        const replyElement = this.createMessageElement(reply, true);
+                        threadContainer.appendChild(replyElement);
+                    });
+
+                    this.messagesContainer.appendChild(threadContainer);
+                }
+            });
+        }
+
+        groupMessagesByThread(messages) {
+            const groups = [];
+            const messageMap = new Map();
+
+            messages.sort((a, b) => parseFloat(a.timestamp) - parseFloat(b.timestamp))
+                .forEach(message => {
+                    if (!message.thread_ts || message.thread_ts === message.timestamp) {
+                        const group = {parent: message, replies: []};
+                        groups.push(group);
+                        messageMap.set(message.timestamp, group);
+                    } else {
+                        const parentGroup = messageMap.get(message.thread_ts);
+                        if (parentGroup) {
+                            parentGroup.replies.push(message);
+                        }
+                    }
                 });
-                
-                return container;
+
+            return groups;
+        }
+
+        createMessageElement(message, isReply = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isReply ? 'thread-message' : ''}`;
+
+            const header = this.createMessageHeader(message);
+            const content = this.createMessageContent(message);
+            const files = this.createFilesContainer(message.files);
+
+            messageDiv.appendChild(header);
+            messageDiv.appendChild(content);
+            if (files) messageDiv.appendChild(files);
+
+            return messageDiv;
+        }
+
+        createMessageHeader(message) {
+            const header = document.createElement('div');
+            header.className = 'message-header d-flex align-items-center';
+
+            const userContainer = document.createElement('div');
+            userContainer.className = 'd-flex align-items-center gap-2';
+
+            if (message.user.image) {
+                const avatar = document.createElement('img');
+                avatar.src = `data:image/jpeg;base64,${message.user.image}`;
+                avatar.className = 'rounded-circle';
+                avatar.style.width = '24px';
+                avatar.style.height = '24px';
+                userContainer.appendChild(avatar);
             }
 
-            showError(message) {
-                this.messagesContainer.innerHTML = `
+            const user = document.createElement('span');
+            user.className = 'user-name';
+            user.textContent = message.user.name;
+            userContainer.appendChild(user);
+
+            const timestamp = document.createElement('span');
+            timestamp.className = 'timestamp';
+            timestamp.textContent = moment(parseFloat(message.timestamp) * 1000)
+                .format('MMM D, YYYY h:mm A');
+
+            header.appendChild(userContainer);
+            header.appendChild(timestamp);
+            return header;
+        }
+
+        createMessageContent(message) {
+            const content = document.createElement('div');
+            content.className = 'message-text';
+            content.textContent = message.text;
+            return content;
+        }
+
+        createFilesContainer(files) {
+            if (!files || files.length === 0) return null;
+
+            const container = document.createElement('div');
+            container.className = 'files-container';
+
+            files.forEach(file => {
+                const img = document.createElement('img');
+                img.className = 'file-image';
+                img.src = `data:${file.mimetype};base64,${file.data}`;
+                img.alt = file.name;
+                container.appendChild(img);
+            });
+
+            return container;
+        }
+
+        showError(message) {
+            // language=HTML
+            this.messagesContainer.innerHTML = `
                     <div class="alert alert-danger" role="alert">
                         <h4 class="alert-heading">Error</h4>
                         <p class="mb-0">${message}</p>
                     </div>`;
-            }
         }
+    }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            new SlackViewer();
-        });
-    </script>
+    document.addEventListener('DOMContentLoaded', () => {
+        new SlackViewer();
+    });
+</script>
 </body>
 </html>
