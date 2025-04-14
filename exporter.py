@@ -323,9 +323,25 @@ class SlackPDFExporter:
                     img = PILImage.open(BytesIO(img_data))
                     w, h = img.size
                     aspect = w / h
-                    max_width = 400
-                    width = min(w, max_width)
-                    height = width / aspect
+
+                    # Calculate available width (accounting for margins)
+                    available_width = 6 * inch
+                    available_height = 7 * inch  # Maximum height to prevent page overflow
+                
+                    # Scale down proportionally if too large
+                    aspect = w / h
+                    if h > available_height:
+                        height = available_height
+                        width = height * aspect
+                    else:
+                        width = min(w, available_width)
+                        height = width / aspect
+                
+                    # Ensure width isn't larger than available width
+                    if width > available_width:
+                        width = available_width
+                        height = width / aspect
+
                     img_obj = Image(BytesIO(img_data), width=width, height=height)
                     content.append(['', img_obj])
 
@@ -383,7 +399,7 @@ def main():
     if not token:
         raise ValueError("SLACK_TOKEN environment variable not set")
 
-    channel_name = "helene-logging"
+    channel_name = "march-severe-weather"
 
     if args.format == 'json':
         exporter = SlackExporter(token)
